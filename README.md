@@ -20,7 +20,7 @@ By injecting a Base64 encoded payload into the iframe, the worm executes within 
 * `/client` - The React frontend application.
 * `/server` - The Node.js/Express backend application.
 * `WebSec_Project_Report.pdf` - The comprehensive research report detailing the attack flow, defense failures, and proposed mitigations.
-* `worm` - The raw, unencoded/encoder JavaScript payload of the worm for easy review.
+* `/worm` - The raw, unencoded/encoder JavaScript payload of the worm for easy review.
 
 ## How to Run
 1. **Clone the repository:** `git clone <repo-url>`
