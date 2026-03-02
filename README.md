@@ -1,5 +1,5 @@
 # Web Systems Security - Final Project: Autonomous XSS to CSRF Web Worm
-##Author:
+## Author:
   ** Israel Shemesh, Ido Agai **
 
 ## Overview
