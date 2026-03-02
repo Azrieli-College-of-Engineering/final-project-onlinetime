@@ -23,7 +23,7 @@ By injecting a Base64 encoded payload into the iframe, the worm executes within 
 * `/worm` - The raw, unencoded/encoder JavaScript payload of the worm for easy review.
 
 ## How to Run
-1. **Clone the repository:** `git clone <repo-url>`
+1. **Clone the repository:** `git clone (https://github.com/Azrieli-College-of-Engineering/final-project-onlinetime.git)`
 2. **Start the Server:**
    ```bash
    cd server
