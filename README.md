@@ -1,6 +1,6 @@
 # Web Systems Security - Final Project: Autonomous XSS to CSRF Web Worm
 ## Author:
-  ** Israel Shemesh, Ido Agai **
+  **Israel Shemesh, Ido Agai**
 
 ## Overview
 [cite_start]This repository contains my final project for the Web Systems Security course[cite: 2]. [cite_start]The project follows **Track A (Vulnerability Research and POC)**, demonstrating a sophisticated "Vulnerability Chaining" attack. It combines a Stored Cross-Site Scripting (XSS) vulnerability with a Cross-Site Request Forgery (CSRF) bypass to create an autonomous, self-propagating Web Worm.
