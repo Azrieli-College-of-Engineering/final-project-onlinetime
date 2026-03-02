@@ -14,7 +14,7 @@ The target is a custom-built, real-time chat application designed as a "Fortress
 ## The Vulnerability (POC)
 The vulnerability stems from a logical flaw introduced by a "Rich Media" requirement. While the server and client sanitizers correctly allow specific `<iframe>` tags, the frontend utilizes the dangerous `window.eval()` function to execute text hidden within these allowed iframes.
 
-By injecting a Base64 encoded payload into the iframe, the worm executes within the victim's Same-Origin context. It achieves Ambient Authority, neutralizes CORS, fetches a valid CSRF token, bypasses the 1000ms Rate Limiter using calculated asynchronous delays, and successfully propagates to all active conversations. It also maintains persistence via a `MutationObserver` (locking the victim's screen) and sends a C2 (Command & Control) report back to the attacker.
+By injecting a Base64 encoded payload into the iframe, the worm executes within the victim's Same-Origin context. It achieves Ambient Authority, neutralizes CORS, fetches a valid CSRF token, bypasses the 1000ms Rate Limiter using calculated asynchronous delays, and successfully propagates to all active conversations. It also maintains persistence via a `MutationObserver` (locking the victim's screen) and automatically transmits an infection telemetry report back to the attacker.
 
 ## Repository Structure
 * `/client` - The React frontend application.
