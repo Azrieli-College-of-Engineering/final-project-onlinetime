@@ -34,10 +34,10 @@ By injecting a Base64 encoded payload into the iframe, the worm executes within 
       npm install
       npm run dev
 4. **Sand the worm:**
-	   connect with 2(or more) users. (u can creat by urself for example: user name = hacker , phone = 054)
-       open the chat page(at the app) with someone to talk(at the contact list)
-       in the attacker web open dev tool and in console type:
-	   localStorage.setItem('BOSS', 'true');
-       send the encoder worm
-       and look in the victim page
+   * `/connect with 2(or more) users. (u can creat by urself for example: user name = hacker , phone = 054)
+   * `/open the chat page(at the app) with someone to talk(at the contact list)
+   * `/in the attacker web open dev tool and in console type:
+       localStorage.setItem('BOSS', 'true');
+   * `/send the encoder worm
+   * `/and look in the victim page
 
